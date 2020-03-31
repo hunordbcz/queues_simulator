@@ -6,11 +6,13 @@ public class Client implements Comparable<Client> {
     private Integer ID;
     private Integer arrivalTime;
     private Integer processingTime;
+    private Integer originalProcessingTime;
 
     public Client(int arrivalTime, int processingTime) {
         this.ID = IDGenerator.getClientID();
         this.arrivalTime = arrivalTime;
         this.processingTime = processingTime;
+        this.originalProcessingTime = processingTime;
     }
 
     public Integer getID() {
@@ -23,6 +25,10 @@ public class Client implements Comparable<Client> {
 
     public Integer getProcessingTime() {
         return processingTime;
+    }
+
+    public Integer getOriginalProcessingTime() {
+        return originalProcessingTime;
     }
 
     public Integer getFinishTime() {

@@ -39,12 +39,12 @@ public class Queue implements Runnable {
         while (this.isRunning()) {
             try {
                 Thread.sleep(Constants.ONE_SECOND);
-                totalWaitingPeriod.addAndGet(clients.size());
                 if (!clients.isEmpty()) {
                     clients.peek().decrementProcessingTime();
                     waitingPeriod.decrementAndGet();
                 }
                 if (!clients.isEmpty() && clients.peek().getProcessingTime() == 0) {
+                    totalWaitingPeriod.addAndGet(clients.peek().getOriginalProcessingTime());
                     clients.take();
                 }
             } catch (InterruptedException e) {
