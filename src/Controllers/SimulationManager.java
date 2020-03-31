@@ -1,10 +1,13 @@
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.util.LinkedList;
+package Controllers;
+
+import Models.Client;
+import Util.Constants;
+import Util.SelectionPolicy;
+
+import java.io.*;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class SimulationManager implements Runnable {
 
@@ -18,23 +21,29 @@ public class SimulationManager implements Runnable {
 
     public SelectionPolicy selectionPolicy = SelectionPolicy.SHORTEST_TIME;
 
+    private int currentTime;
     private Scheduler scheduler;
     private List<Client> generatedClients;
 
     public SimulationManager(String[] args) {
-        generatedClients = new LinkedList<>();
+        currentTime = 0;
+        generatedClients = new CopyOnWriteArrayList<>();
         generateRandomClients(args);
-        scheduler = new Scheduler(numberOfClients, numberOfClients);
-    }
-
-    public static void main(String[] args) {
-        SimulationManager gen = new SimulationManager(args);
-        Thread t = new Thread(gen);
-        t.start();
+        scheduler = new Scheduler(numberOfQueues, numberOfClients);
     }
 
     private void generateRandomClients(String[] args) {
         readFile(args[0]);
+
+        if (args.length > 1) {
+            try {
+                PrintStream fileOut = new PrintStream(args[1]);
+                System.setOut(fileOut);
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
+        }
+
         Random random = new Random();
         for (int i = 1; i <= numberOfClients; i++) {
             int arrivalTime = random.nextInt(maxArrivalTime - minArrivalTime + 1) + minArrivalTime;
@@ -42,22 +51,49 @@ public class SimulationManager implements Runnable {
             Client client = new Client(arrivalTime, serviceTime);
             generatedClients.add(client);
         }
+//        generatedClients.add(new Models.Client(2,2));    // Tests from PDF
+//        generatedClients.add(new Models.Client(3,3));
+//        generatedClients.add(new Models.Client(4,3));
+//        generatedClients.add(new Models.Client(10,2));
         generatedClients.sort(Client::compareTo);
     }
 
     @Override
-    public void run() {
-        int currentTime = 0;
-        while (currentTime < simulationInterval) {
+    public String toString() {
+        StringBuilder response = new StringBuilder("Time " + currentTime + "\nWaiting clients:");
+
+        if (generatedClients.isEmpty()) {
+            response.append("No one");
+        } else {
             for (Client client : generatedClients) {
-                if (client.getArrivalTime() > simulationInterval) {
+                response.append(client);
+            }
+        }
+        response.append("\n").append(scheduler);
+        return response.toString();
+    }
+
+    @Override
+    public void run() {
+        while (currentTime < simulationInterval && (!generatedClients.isEmpty() || !scheduler.queuesEmpty())) {
+            for (Client client : generatedClients) {
+                if (client.getArrivalTime() > currentTime) {
                     break;
                 }
+
                 scheduler.dispatchClient(client);
                 generatedClients.remove(client);
             }
+            System.out.println(this);
+            try {
+                Thread.sleep(Constants.ONE_SECOND);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
             currentTime++;
         }
+        System.out.println(this);
+        System.out.println("Average waiting time: " + scheduler.averageWaitingTime());
         scheduler.stop();
     }
 

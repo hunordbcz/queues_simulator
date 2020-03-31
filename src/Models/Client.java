@@ -1,3 +1,7 @@
+package Models;
+
+import Util.IDGenerator;
+
 public class Client implements Comparable<Client> {
     private Integer ID;
     private Integer arrivalTime;
@@ -25,11 +29,21 @@ public class Client implements Comparable<Client> {
         return this.arrivalTime + this.processingTime;
     }
 
+    public Integer decrementProcessingTime() {
+        return --processingTime;
+    }
+
     @Override
     public int compareTo(Client client) {
         if (this.arrivalTime.equals(client.arrivalTime)) {
             return this.processingTime - client.processingTime;
         }
         return this.arrivalTime - client.arrivalTime;
+//        return this.getFinishTime() - client.getFinishTime();
+    }
+
+    @Override
+    public String toString() {
+        return " (" + this.getID() + "," + this.getArrivalTime() + "," + this.getProcessingTime() + ");";
     }
 }

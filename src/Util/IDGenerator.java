@@ -1,7 +1,9 @@
+package Util;
+
 public class IDGenerator {
 
-    private static int queueID = 1;
-    private static int clientID = 1;
+    private static int queueID = Constants.IDs_STARTS_FROM;
+    private static int clientID = Constants.IDs_STARTS_FROM;
 
     private IDGenerator() {
 

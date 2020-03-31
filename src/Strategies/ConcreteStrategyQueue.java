@@ -1,3 +1,8 @@
+package Strategies;
+
+import Controllers.Queue;
+import Models.Client;
+
 import java.util.List;
 
 public class ConcreteStrategyQueue implements Strategy {
