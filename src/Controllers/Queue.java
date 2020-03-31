@@ -82,7 +82,7 @@ public class Queue implements Runnable {
 
     @Override
     public String toString() {
-        StringBuilder response = new StringBuilder("Controllers.Queue " + getID() + ":");
+        StringBuilder response = new StringBuilder("Queue " + getID() + ":");
         List<Client> clients = getClients();
 
         if (clients.isEmpty()) {
