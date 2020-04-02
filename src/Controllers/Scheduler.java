@@ -1,7 +1,6 @@
 package Controllers;
 
 import Models.Client;
-import Strategies.ConcreteStrategyQueue;
 import Strategies.ConcreteStrategyTime;
 import Strategies.Strategy;
 import Util.SelectionPolicy;
@@ -25,9 +24,9 @@ public class Scheduler {
             case SHORTEST_TIME:
                 strategy = new ConcreteStrategyTime();
                 break;
-            case SHORTEST_QUEUE:
-                strategy = new ConcreteStrategyQueue();
-                break;
+//            case SHORTEST_QUEUE:
+//                strategy = new ConcreteStrategyQueue();
+//                break;
             default:
                 throw new InvalidParameterException("Invalid selection policy (Scheduler::constructor)");
         }
@@ -66,7 +65,7 @@ public class Scheduler {
         return true;
     }
 
-    public Boolean stop() throws QueueStopException {
+    public void stop() throws QueueStopException {
         for (Queue queue : queues) {
             if (queue.isRunning()) {
                 if (!queue.stop()) {
@@ -74,7 +73,6 @@ public class Scheduler {
                 }
             }
         }
-        return true;
     }
 
     @Override
@@ -86,7 +84,7 @@ public class Scheduler {
         return response.toString();
     }
 
-    public double averageWaitingTime() {
+    public double getAverageWaitingTime() {
         double totalWaitingTime = 0;
         int totalProcessed = 0;
         for (Queue queue : queues) {

@@ -28,8 +28,8 @@ public class Client implements Comparable<Client> {
         return " (" + this.getID() + "," + this.getArrivalTime() + "," + this.getProcessingTime() + ");";
     }
 
-    public void incrementWaitingPeriod() {
-        ++waitingPeriod;
+    public Integer incrementWaitingPeriod() {
+        return ++waitingPeriod;
     }
 
     public Integer getID() {
