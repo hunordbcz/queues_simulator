@@ -2,14 +2,14 @@ package Strategies;
 
 import Controllers.Queue;
 import Models.Client;
+import exceptions.NullQueueException;
 
-import java.security.InvalidParameterException;
 import java.util.List;
 
 public class ConcreteStrategyTime implements Strategy {
 
     @Override
-    public void addClient(List<Queue> queues, Client client) {
+    public void addClient(List<Queue> queues, Client client) throws NullQueueException {
         Queue bestQueue = null;
         Integer maxWait = -1;
         for (Queue queue : queues) {
@@ -20,7 +20,7 @@ public class ConcreteStrategyTime implements Strategy {
         }
 
         if (bestQueue == null) {
-            throw new InvalidParameterException(); // Do some normal exception here
+            throw new NullQueueException("Given list contains no queues");
         }
         bestQueue.addClient(client);
     }

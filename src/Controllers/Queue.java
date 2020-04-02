@@ -17,6 +17,7 @@ public class Queue implements Runnable {
     private BlockingQueue<Client> clients;
     private AtomicInteger waitingPeriod;
     private AtomicInteger totalWaitingPeriod;
+    private AtomicInteger totalProcessed;
 
     public Queue() {
         this.ID = IDGenerator.getQueueID();
@@ -24,10 +25,11 @@ public class Queue implements Runnable {
         this.waitingPeriod = new AtomicInteger(0);
         this.totalWaitingPeriod = new AtomicInteger(0);
         this.running = new AtomicBoolean(false);
+        this.totalProcessed = new AtomicInteger(0);
     }
 
     public synchronized void addClient(Client client) {
-        if (!running.get()) {
+        if (!this.isRunning()) {
             start();
         }
         clients.add(client);
@@ -38,13 +40,19 @@ public class Queue implements Runnable {
     public void run() {
         while (this.isRunning()) {
             try {
-                Thread.sleep(Constants.ONE_SECOND);
-                if (!clients.isEmpty()) {
-                    clients.peek().decrementProcessingTime();
-                    waitingPeriod.decrementAndGet();
+                if (clients.isEmpty()) {
+                    continue;
                 }
-                if (!clients.isEmpty() && clients.peek().getProcessingTime() == 0) {
-                    totalWaitingPeriod.addAndGet(clients.peek().getOriginalProcessingTime());
+
+                Client currentClient = clients.peek();
+
+                Thread.sleep(Constants.ONE_SECOND);
+                waitingPeriod.decrementAndGet();
+                this.incrementClientsWaitingPeriod();
+
+                if (currentClient.decrementProcessingTime() == 0) {
+                    totalWaitingPeriod.addAndGet(currentClient.getWaitingPeriod());
+                    totalProcessed.incrementAndGet();
                     clients.take();
                 }
             } catch (InterruptedException e) {
@@ -52,10 +60,6 @@ public class Queue implements Runnable {
                 return;
             }
         }
-    }
-
-    public List<Client> getClients() {
-        return new LinkedList<>(this.clients);
     }
 
     public Boolean isRunning() {
@@ -68,8 +72,19 @@ public class Queue implements Runnable {
         t.start();
     }
 
-    public void stop() {
+    public Boolean stop() {
         running.set(false);
+        return true;
+    }
+
+    private void incrementClientsWaitingPeriod() {
+        for (Client client : clients) {
+            client.incrementWaitingPeriod();
+        }
+    }
+
+    public List<Client> getClients() {
+        return new LinkedList<>(this.clients);
     }
 
     public Integer getID() {
@@ -80,13 +95,21 @@ public class Queue implements Runnable {
         return this.waitingPeriod.get();
     }
 
+    public Integer getTotalWaitingPeriod() {
+        return totalWaitingPeriod.get();
+    }
+
+    public int getTotalProcessed() {
+        return totalProcessed.get();
+    }
+
     @Override
     public String toString() {
         StringBuilder response = new StringBuilder("Queue " + getID() + ":");
         List<Client> clients = getClients();
 
         if (clients.isEmpty()) {
-            response.append("closed");
+            response.append(" closed");
         }
 
         for (Client client : clients) {
@@ -95,9 +118,5 @@ public class Queue implements Runnable {
 
         response.append("\n");
         return response.toString();
-    }
-
-    public Integer getTotalWaitingPeriod() {
-        return totalWaitingPeriod.get();
     }
 }

@@ -2,8 +2,8 @@ package Util;
 
 public class Constants {
 
-    public static Integer ONE_SECOND = 200; // 1000 = 1 Second
-    public static Integer IDs_STARTS_FROM = 1;
+    public final static Integer IDs_STARTS_FROM = 1;
+    public static Integer ONE_SECOND = 1000; // in milliseconds (1000 = 1 Second)
 
     private Constants() {
 

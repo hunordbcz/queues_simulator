@@ -3,6 +3,7 @@ package Controllers;
 import Models.Client;
 import Util.Constants;
 import Util.SelectionPolicy;
+import exceptions.QueueStopException;
 
 import java.io.*;
 import java.util.List;
@@ -11,15 +12,13 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 public class SimulationManager implements Runnable {
 
-    public int numberOfClients;
-    public int numberOfQueues;
-    public int simulationInterval;
-    public int minArrivalTime;
-    public int maxArrivalTime;
-    public int minServiceTime;
-    public int maxServiceTime;
-
-    public SelectionPolicy selectionPolicy = SelectionPolicy.SHORTEST_TIME;
+    private int numberOfClients;
+    private int numberOfQueues;
+    private int simulationInterval;
+    private int minArrivalTime;
+    private int maxArrivalTime;
+    private int minServiceTime;
+    private int maxServiceTime;
 
     private int currentTime;
     private Scheduler scheduler;
@@ -27,21 +26,31 @@ public class SimulationManager implements Runnable {
 
     public SimulationManager(String[] args) {
         currentTime = 0;
-        generatedClients = new CopyOnWriteArrayList<>();
-        generateRandomClients(args);
-        scheduler = new Scheduler(numberOfQueues, numberOfClients);
+        generatedClients = generateRandomClients(args);
+        SelectionPolicy selectionPolicy = SelectionPolicy.SHORTEST_TIME;
+        scheduler = new Scheduler(numberOfQueues, selectionPolicy);
     }
 
-    private void generateRandomClients(String[] args) {
+    private List<Client> generateRandomClients(String[] args) {
         readFile(args[0]);
 
+        List<Client> clients = new CopyOnWriteArrayList<>();
+
         if (args.length > 1) {
-            try {
-                PrintStream fileOut = new PrintStream(args[1]);
-                System.setOut(fileOut);
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
+            if (args[1].contains("second=")) {
+                Constants.ONE_SECOND = Integer.parseInt(args[1].substring(args[1].indexOf("=") + 1));
+            } else {
+                try {
+                    PrintStream fileOut = new PrintStream(args[1]);
+                    System.out.println("From now on redirecting output from STDOUT to " + args[1]);
+                    System.setOut(fileOut);
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                }
             }
+        }
+        if (args.length > 2) {
+            Constants.ONE_SECOND = Integer.parseInt(args[2].substring(args[2].indexOf("=") + 1));
         }
 
         Random random = new Random();
@@ -49,13 +58,10 @@ public class SimulationManager implements Runnable {
             int arrivalTime = random.nextInt(maxArrivalTime - minArrivalTime + 1) + minArrivalTime;
             int serviceTime = random.nextInt(maxServiceTime - minServiceTime + 1) + minServiceTime;
             Client client = new Client(arrivalTime, serviceTime);
-            generatedClients.add(client);
+            clients.add(client);
         }
-//        generatedClients.add(new Models.Client(2,2));    // Tests from PDF
-//        generatedClients.add(new Models.Client(3,3));
-//        generatedClients.add(new Models.Client(4,3));
-//        generatedClients.add(new Models.Client(10,2));
-        generatedClients.sort(Client::compareTo);
+        clients.sort(Client::compareTo);
+        return clients;
     }
 
     @Override
@@ -94,7 +100,12 @@ public class SimulationManager implements Runnable {
         }
         System.out.println(this);
         System.out.println("Average waiting time: " + scheduler.averageWaitingTime());
-        scheduler.stop();
+
+        try {
+            scheduler.stop();
+        } catch (QueueStopException e) {
+            System.out.println(e.getMessage());
+        }
     }
 
     private void readFile(String input) {

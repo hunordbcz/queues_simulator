@@ -1,39 +1,61 @@
 package Controllers;
 
 import Models.Client;
+import Strategies.ConcreteStrategyQueue;
 import Strategies.ConcreteStrategyTime;
 import Strategies.Strategy;
+import Util.SelectionPolicy;
+import exceptions.NullQueueException;
+import exceptions.QueueStopException;
 
-import java.util.ArrayList;
+import java.security.InvalidParameterException;
+import java.util.LinkedList;
 import java.util.List;
 
 public class Scheduler {
     private List<Queue> queues;
-    private int maxNoServers;
-    private int maxTasksPerServer;
     private Strategy strategy;
-    private int totalDispatched;
+    private Integer maxNoServers;
 
-    public Scheduler(int maxNoServers, int maxTasksPerServer) {
-        queues = new ArrayList<>();
-        strategy = new ConcreteStrategyTime();
+    public Scheduler(int maxNoServers, SelectionPolicy selectionPolicy) throws InvalidParameterException {
         this.maxNoServers = maxNoServers;
-        totalDispatched = 0;
+        queues = createServers(maxNoServers);
 
-        for (int i = 0; i < maxNoServers; i++) {
-            Queue queue = new Queue();
-            queues.add(queue);
+        switch (selectionPolicy) {
+            case SHORTEST_TIME:
+                strategy = new ConcreteStrategyTime();
+                break;
+            case SHORTEST_QUEUE:
+                strategy = new ConcreteStrategyQueue();
+                break;
+            default:
+                throw new InvalidParameterException("Invalid selection policy (Scheduler::constructor)");
         }
     }
 
-    public void dispatchClient(Client client) {
-        strategy.addClient(queues, client);
-        totalDispatched++;
+    private List<Queue> createServers(int nrServers) {
+        if (nrServers < 1) {
+            throw new InvalidParameterException("nrServers must be greater than 0 (Scheduler::createServers)");
+        }
+
+        List<Queue> servers = new LinkedList<>();
+
+        for (int i = 0; i < nrServers; i++) {
+            Queue queue = new Queue();
+            servers.add(queue);
+        }
+
+        return servers;
     }
 
-//    public List<Controllers.Queue> getQueues() {
-//        return queues;
-//    }
+    public void dispatchClient(Client client) {
+        try {
+            strategy.addClient(queues, client);
+        } catch (NullQueueException e) {
+            queues = createServers(maxNoServers);
+            dispatchClient(client);
+        }
+    }
 
     public Boolean queuesEmpty() {
         for (Queue queue : queues) {
@@ -44,12 +66,15 @@ public class Scheduler {
         return true;
     }
 
-    public void stop() {
+    public Boolean stop() throws QueueStopException {
         for (Queue queue : queues) {
             if (queue.isRunning()) {
-                queue.stop();
+                if (!queue.stop()) {
+                    throw new QueueStopException();
+                }
             }
         }
+        return true;
     }
 
     @Override
@@ -63,9 +88,14 @@ public class Scheduler {
 
     public double averageWaitingTime() {
         double totalWaitingTime = 0;
+        int totalProcessed = 0;
         for (Queue queue : queues) {
             totalWaitingTime += (double) queue.getTotalWaitingPeriod();
+            totalProcessed += queue.getTotalProcessed();
         }
-        return (totalWaitingTime / totalDispatched);
+        if (totalProcessed == 0) {
+            return 0;
+        }
+        return (totalWaitingTime / totalProcessed);
     }
 }
